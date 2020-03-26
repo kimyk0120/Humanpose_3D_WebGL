@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<!--suppress ES6ModulesDependencies, JSUnresolvedVariable -->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Humanpose 3D WebGL</title>
+    <link rel="stylesheet" href="./css/Humanpose_3d_webGL.css">
+    <script src="./js/three.js"></script>
+</head>
+<body>
+    <script src="./js/Humanpose_3d_webGL.js"></script>
+    <script>
+
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        let renderer = new THREE.WebGLRenderer({antialias : true}); // 렌더러 정의
+        renderer.setSize(width, height);
+
+        document.body.appendChild(renderer.domElement);
+
+        let scene = new THREE.Scene; // 씬 정의
+
+
+    </script>
+</body>
+
+</html>
