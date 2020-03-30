@@ -6,3 +6,16 @@ canvas {
 body{
     margin: 0;
 }
+#webgl_description,#webgl_info {
+    position: absolute;
+    top: 10px;
+    /*left: 10px;*/
+    width: 100%;
+    text-align: center;
+    z-index: 100;
+    display:block;
+    color: white;
+}
+#webgl_info {
+    top: 30px;
+}

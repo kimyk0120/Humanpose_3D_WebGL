@@ -6,164 +6,175 @@
     <meta charset="UTF-8">
     <title>Humanpose 3D WebGL</title>
     <link rel="stylesheet" href="./css/Humanpose_3d_webGL.css">
-
-
 </head>
 <body>
+    <div id="webgl_description">Humanpose 3D WebGL View</div>
+    <div id="webgl_info"></div>
     <div id="webgl-output"></div>
 
-    <script src="./js/three.js"></script> <!-- three.js   -->
+    <script src="./js/three.min.js"></script> <!-- three.js   -->
     <script src="./js/WebGL.js"></script> <!-- browser support check-->
     <!-- OrbitControls.js allow the camera to orbit around a target 마우스와 카메라를 상호작용 -->
     <script src="./js/OrbitControls.js"></script>
-    <script src="./js/Humanpose_3d_webGL.js"></script>
+    <script src="./js/FBXLoader.js"></script>
+    <script src="./js/inflate.min.js"></script>
+    <script src="./js/stats.min.js"></script>
+
 
     <script>
         // 화면을 표현하려면 기본적으로 scene, camera, renderer 3가지가 필요
-        let scene = new THREE.Scene(); // 씬 정의
-        // let light;
-        // let camera;
-        // let loader; // OBJLoader 객체를 넣을 변수를 선언합니다.
-
-        //브라우저가 WebGL을 지원하는지 체크
-        let webglBrowserCheckc_yn = webglBrowserCheck();
-
-        // axes Helper
-        let axes = new THREE.AxesHelper(20);
-        scene.add(axes);
-
-        // renderer
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-
-        const renderer = new THREE.WebGLRenderer({antialias : true, alpha : true}); // 렌더러 정의 (antialias : 오브젝트 가장자리 정리)
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setSize(width, height);
-
-        //document.body.appendChild(renderer.domElement);
-        document.getElementById("webgl-output").appendChild(renderer.domElement);
-
-
-        // Object
-        // let cubeGeometry = new THREE.CubeGeometry(100, 100, 100); // 너비, 높이, 깊이
-        // MeshLambertMaterial: 조명 계산에 관한 람베르트의 알고리즘을 이용
-        // let cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x1ec876 });
-        // let cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        // cube.rotation.y = Math.PI * 45 / 180; // 라디안
-        // scene.add(cube);
-        
-
-        let sphereGeometry = new THREE.SphereGeometry(4,20,20);
-        let sphereMaterial = new THREE.MeshLambertMaterial({color:   0x7777ff}); // MeshBasicMaterial : 조명 x
-        let sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        scene.add(sphere);
-
-
-        // let planeGeometry = new THREE.PlaneGeometry(60, 20);
-        // let planeMaterial = new THREE.MeshBasicMaterial({ color: 0xAAAAAA });
-        // let plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        // plane.rotation.x = -0.5 * Math.PI;
-        // plane.position.set(15, 0, 0);
-        // scene.add(plane);
-
-
-        // Camera
-        /**
-         * 카메라
-         *
-         * PerspectiveCamera(fov: Number, aspect: Number, near: Number, far: Number)
-         * fov: 시야각 즉 3D 게임에서 한 화면에 어느 정도의 각도에서 보여줄지 설정
-         * aspect: 화면 비율 즉 넓이를 높이로 나눈값
-         * near: 렌더링이 수행되는 가까운점
-         * far: 랜더링이 수행되는 가장 먼점
-         */
-        const camera = new THREE.PerspectiveCamera(45, width / height, 1, 11000);
-        // camera.position.y = 200;
-        // camera.position.z = 400;
-        // camera.lookAt(axes.position);
-        // scene.add(camera);
-
-        camera.position.set(-30, 40, 30);
-        camera.lookAt(scene.position);
-
-
-        // lighting
-        // skybox
-        let skyboxGeometry = new THREE.CubeGeometry(10000, 10000, 10000);
-        // // 0x000000 : black, Three.js는 보통 바깥쪽 벽만 그리므로 THREE.BackSide(안쪽)
-        let skyboxMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
-        let skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
-        scene.add(skybox);
-
-        // point light
-        let light = new THREE.PointLight(0xffffff);
-        light.position.set(10, 250, 200);
-        scene.add(light);
-
-        // directional light
-        // light = new THREE.DirectionalLight(0xffffff, 1);
-        // light.castShadow = true;
-        // light.position.x = 50;
-        // light.position.y = 100;
-        // light.position.z = 50;
-        // scene.add(light);
-
-        // ambient light
-        // let light = new THREE.AmbientLight(0xffffff);
-        // scene.add(light);
-
-
-        // Orbit Controls
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.rotateSpeed = 1.0; // 마우스로 카메라를 회전시킬 속도입니다. 기본값(Float)은 1입니다.
-        controls.zoomSpeed = 1.2; // 마우스 휠로 카메라를 줌 시키는 속도 입니다. 기본값(Float)은 1입니다.
-        controls.panSpeed = 0.8; // 패닝 속도 입니다. 기본값(Float)은 1입니다.
-        controls.minDistance = 5; // 마우스 휠로 카메라 거리 조작시 최소 값. 기본값(Float)은 0 입니다.
-        controls.maxDistance = 100; // 마우스 휠로 카메라 거리 조작시 최대 값. 기본값(Float)은 무제한 입니다.
-
-
-        // 렌더링
         const clock = new THREE.Clock;
+        let camera, scene, renderer, light;
+        const loader = new THREE.FBXLoader(); // OBJLoader 객체를 넣을 변수를 선언합니다.
+        const perspective_ratio = 200;
+        let container, mixer, controls, stats;
 
-        // frame
-        renderer.render(scene, camera);
-
-        // animation
-        // function render() {
-        //     renderer.render(scene, camera);
-        //     cube.rotation.y -= clock.getDelta();
-        //     requestAnimationFrame(render); // like settimeout , Interval은 브라우저에 의해 정해짐
-        // }
-        // render();
-
-        function animate() {
-            requestAnimationFrame( animate );
-            renderer.render( scene, camera );
-            controls.update(); // 마우스로인해 변경된 카메라값을 업데이트 합니다.
-        }
+        initThree();
         animate();
 
+        // Keypoints
+        let geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
+        let material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
+        let sphere = new THREE.Mesh( geometry, material );
+        sphere.position.set(100,100,100);
+        sphere.renderOrder = 999;
+        scene.add( sphere );
 
 
         /**
-         * .obj 파일의 모델을 로드하는 함수
          *
-         * @method loadObjLoader
+         * Threejs 초기화 함수
+         *
+         * @method initThree
          */
-        // function loadObjLoader() {
-        //     loader = new THREE.OBJLoader();
-        //     loader.load('./cat.obj', function (object) {
-        //         // 모델 로드가 완료되었을때 호출되는 함수
-        //         scene.add(object);
-        //     }, function (xhr) {
-        //         // 모델이 로드되는 동안 호출되는 함수
-        //         console.log(xhr.loaded / xhr.total * 100, '% loaded');
-        //     }, function (error) {
-        //         // 모델 로드가 실패했을 때 호출하는 함수
-        //         alert('모델을 로드 중 오류가 발생하였습니다.');
-        //     });
-        // }
+        function initThree() {
+            //브라우저가 WebGL을 지원하는지 체크
+            let webglBrowserCheckc_yn = webglBrowserCheck();
+            if(!webglBrowserCheckc_yn)
+                document.getElementById("webgl_info").innerText = "이 브라우저는 WEBGL을 지원하지 않습니다.";
+
+            // container
+            container = document.getElementById("webgl-output");
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color( 0xa0a0a0 );
+            scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+
+
+            // light
+            light = new THREE.HemisphereLight( 0xffffff, 0x444444 ); // 반구체형 라이트
+            light.position.set( 0, 200, 0 );
+            scene.add( light );
+
+            light = new THREE.DirectionalLight( 0xffffff );
+            light.position.set( 0, 200, 100 );
+            light.castShadow = true;
+            light.shadow.camera.top = 180;
+            light.shadow.camera.bottom = - 100;
+            light.shadow.camera.left = - 120;
+            light.shadow.camera.right = 120;
+            scene.add( light );
+
+
+            // Camera
+            /**
+             * 카메라
+             *
+             * PerspectiveCamera(fov: Number, aspect: Number, near: Number, far: Number)
+             * fov: 시야각 즉 3D 게임에서 한 화면에 어느 정도의 각도에서 보여줄지 설정
+             * aspect: 화면 비율 즉 넓이를 높이로 나눈값
+             * near: 렌더링이 수행되는 가까운점
+             * far: 랜더링이 수행되는 가장 먼점
+             */
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+            // camera.position.y = 200;
+            // camera.position.z = 300;
+            // camera.lookAt(axes.position);
+            // scene.add(camera);
+            camera.position.set(100 , 200 , 300);
+            camera.lookAt(scene.position);
+
+            // obj loader
+            loader.load('./data/fbx/BaseHuman.fbx', function (object) {
+                // 모델 로드가 완료되었을때 호출되는 함수
+                // mixer = new THREE.AnimationMixer( object );
+                // let action = mixer.clipAction( object.animations[ 0 ] );
+                // action.play();
+                
+                object.traverse( function ( child ) {
+                    if ( child.isMesh ) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                } );
+                scene.add(object);
+
+
+            }, function (xhr) {
+                // 모델이 로드되는 동안 호출되는 함수
+                let load_msg = Math.floor(xhr.loaded / xhr.total * 100) + '% loaded';
+                console.log(xhr.loaded / xhr.total * 100, '% loaded');
+                document.getElementById("webgl_info").innerText = load_msg;
+            }, function (error) {
+                // 모델 로드가 실패했을 때 호출하는 함수
+                console.log(error);
+                document.getElementById("webgl_info").innerText = "모델을 로드 중 오류가 발생하였습니다.";
+            });
+
+            // renderer
+            renderer = new THREE.WebGLRenderer({
+                antialias: true
+            });
+            renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            //document.body.appendChild(renderer.domElement);
+            container.appendChild(renderer.domElement);
+
+            /**
+             * scene 화면상에 XYZ(Red: X, Green: Y, Blue: Z) 축을 보여줍니다.
+             *
+             * AxisHelper(size : Number)
+             * size: optional 축의 크기, 기본값은 1입니다.
+             */
+            let axes = new THREE.AxesHelper(10);
+            scene.add(axes);
+
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls( camera, renderer.domElement );
+            controls.target.set( 0, 100, 0 );
+            controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 100;
+            controls.maxDistance = 500;
+            // controls.maxPolarAngle = Math.PI / 2;
+            controls.update();
+
+            window.addEventListener( 'resize', onWindowResize, false );
+
+            // stats
+            stats = new Stats();
+            container.appendChild( stats.dom );
+
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);// like settimeout , Interval은 브라우저에 의해 정해짐
+            let delta = clock.getDelta();
+            if ( mixer ) mixer.update( delta );
+            renderer.render( scene, camera );
+            stats.update();
+        }
 
 
     </script>
