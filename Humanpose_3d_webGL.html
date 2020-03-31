@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!--suppress ES6ModulesDependencies, JSUnresolvedVariable, SpellCheckingInspection -->
+<!--suppress ES6ModulesDependencies, JSUnresolvedVariable, SpellCheckingInspection, JSCheckFunctionSignatures, JSValidateJSDoc -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -8,67 +8,84 @@
     <link rel="stylesheet" href="./css/Humanpose_3d_webGL.css">
 </head>
 <body>
+
     <div id="webgl_description">Humanpose 3D WebGL View</div>
     <div id="webgl_info"></div>
-    <div id="webgl-output"></div>
+    <div id="webgl_output"></div>
 
     <script src="./js/three.min.js"></script> <!-- three.js   -->
     <script src="./js/WebGL.js"></script> <!-- browser support check-->
     <!-- OrbitControls.js allow the camera to orbit around a target 마우스와 카메라를 상호작용 -->
     <script src="./js/OrbitControls.js"></script>
     <script src="./js/FBXLoader.js"></script>
+    <script src="./js/OBJLoader.js"></script>
     <script src="./js/inflate.min.js"></script>
     <script src="./js/stats.min.js"></script>
 
 
     <script>
+
+        // init =======================================================================================================
+
+        // Elements
+        const webgl_description = document.getElementById("webgl_description");
+        const webgl_info = document.getElementById("webgl_info");
+        const webgl_output = document.getElementById("webgl_output");
+
         // 화면을 표현하려면 기본적으로 scene, camera, renderer 3가지가 필요
-        const clock = new THREE.Clock;
         let camera, scene, renderer, light;
-        const loader = new THREE.FBXLoader(); // OBJLoader 객체를 넣을 변수를 선언합니다.
-        const perspective_ratio = 200;
-        let container, mixer, controls, stats;
+        const clock = new THREE.Clock;
+        let perspective_max = 10000; // camera zoom max
+        let perspective_min = 1; // camera zoom min
+        let camera_angle = 45;
+        let mixer, controls, stats; // libs
+        let container; // webgl contatiner
+        let mesh_data_path = "./data/fbx/BaseHuman.fbx"; // 3d model mesh data path
+        let loader;// 3D model Loader var
+        let file_ext = getExtension(mesh_data_path);
+        if(file_ext[0] === 'fbx') loader = new THREE.FBXLoader();
+        else if(file_ext[0] === 'obj') loader = new THREE.OBJLoader();
+        else alert("지원하지 않는 3D 확장자입니다.");
 
-        initThree();
-        animate();
+        // colors
+        let scene_background_color = '#A0A0A0';
+        let scene_fog_color = "#A0A0A0";
+        let directionalLight_color = "#FFFFFF";
+        let keypoint_color = "#FFFF00"; // #FFFF00;yellow, #FF0000; red
 
-        // Keypoints
-        let geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
-        let material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
-        let sphere = new THREE.Mesh( geometry, material );
-        sphere.position.set(100,100,100);
-        sphere.renderOrder = 999;
-        scene.add( sphere );
 
+        //브라우저가 WebGL을 지원하는지 체크
+        let webglBrowserCheckc_yn = webglBrowserCheck();
+        if(!webglBrowserCheckc_yn){
+            webgl_info.innerText = "이 브라우저는 WEBGL을 지원하지 않습니다.";
+        }else{
+            initThree();
+            animate();
+            keyPointInit();
+        }
+
+
+
+        // func =======================================================================================================
 
         /**
-         *
-         * Threejs 초기화 함수
-         *
+         * Threejs 초기화
          * @method initThree
          */
         function initThree() {
-            //브라우저가 WebGL을 지원하는지 체크
-            let webglBrowserCheckc_yn = webglBrowserCheck();
-            if(!webglBrowserCheckc_yn)
-                document.getElementById("webgl_info").innerText = "이 브라우저는 WEBGL을 지원하지 않습니다.";
 
             // container
-            container = document.getElementById("webgl-output");
+            container = webgl_output;
 
             // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color( 0xa0a0a0 );
-            scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+            scene.background = new THREE.Color(scene_background_color); // 0xa0a0a0
+            scene.fog = new THREE.Fog(scene_fog_color, 200, 1000 );
 
 
             // light
-            light = new THREE.HemisphereLight( 0xffffff, 0x444444 ); // 반구체형 라이트
-            light.position.set( 0, 200, 0 );
-            scene.add( light );
-
-            light = new THREE.DirectionalLight( 0xffffff );
-            light.position.set( 0, 200, 100 );
+            light = new THREE.DirectionalLight( directionalLight_color ); // 방향형 라이트
+            light.position.set( 0, 200, -100);
             light.castShadow = true;
             light.shadow.camera.top = 180;
             light.shadow.camera.bottom = - 100;
@@ -76,18 +93,19 @@
             light.shadow.camera.right = 120;
             scene.add( light );
 
+            // light = new THREE.HemisphereLight(0xffffff, 0x444444 ); // 반구체형 라이트
+            // light.position.set( 0, 200, 0 );
+            // scene.add( light );
 
             // Camera
             /**
-             * 카메라
-             *
              * PerspectiveCamera(fov: Number, aspect: Number, near: Number, far: Number)
              * fov: 시야각 즉 3D 게임에서 한 화면에 어느 정도의 각도에서 보여줄지 설정
              * aspect: 화면 비율 즉 넓이를 높이로 나눈값
              * near: 렌더링이 수행되는 가까운점
              * far: 랜더링이 수행되는 가장 먼점
              */
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+            camera = new THREE.PerspectiveCamera(camera_angle, window.innerWidth / window.innerHeight, perspective_min, perspective_max);
             // camera.position.y = 200;
             // camera.position.z = 300;
             // camera.lookAt(axes.position);
@@ -96,12 +114,11 @@
             camera.lookAt(scene.position);
 
             // obj loader
-            loader.load('./data/fbx/BaseHuman.fbx', function (object) {
+            loader.load(mesh_data_path, function (object) {
                 // 모델 로드가 완료되었을때 호출되는 함수
                 // mixer = new THREE.AnimationMixer( object );
                 // let action = mixer.clipAction( object.animations[ 0 ] );
                 // action.play();
-                
                 object.traverse( function ( child ) {
                     if ( child.isMesh ) {
                         child.castShadow = true;
@@ -109,22 +126,20 @@
                     }
                 } );
                 scene.add(object);
-
-
             }, function (xhr) {
                 // 모델이 로드되는 동안 호출되는 함수
                 let load_msg = Math.floor(xhr.loaded / xhr.total * 100) + '% loaded';
                 console.log(xhr.loaded / xhr.total * 100, '% loaded');
-                document.getElementById("webgl_info").innerText = load_msg;
+                webgl_info.innerText = load_msg;
             }, function (error) {
                 // 모델 로드가 실패했을 때 호출하는 함수
                 console.log(error);
-                document.getElementById("webgl_info").innerText = "모델을 로드 중 오류가 발생하였습니다.";
+                webgl_info.innerText = "모델을 로드 중 오류가 발생하였습니다.";
             });
 
             // renderer
             renderer = new THREE.WebGLRenderer({
-                antialias: true
+                antialias: true, alpha: true
             });
             renderer.setPixelRatio( window.devicePixelRatio );
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -134,10 +149,9 @@
             container.appendChild(renderer.domElement);
 
             /**
-             * scene 화면상에 XYZ(Red: X, Green: Y, Blue: Z) 축을 보여줍니다.
-             *
+             * scene 화면상에 XYZ(Red: X, Green: Y, Blue: Z) 축
              * AxisHelper(size : Number)
-             * size: optional 축의 크기, 기본값은 1입니다.
+             * size: optional 축의 크기, 기본값은 1.
              */
             let axes = new THREE.AxesHelper(10);
             scene.add(axes);
@@ -159,15 +173,22 @@
             // stats
             stats = new Stats();
             container.appendChild( stats.dom );
-
         }
 
+        /**
+         * window resize
+         * @method onWindowResize
+         */
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize( window.innerWidth, window.innerHeight );
         }
 
+        /**
+         * call renderer
+         * @method animate
+         */
         function animate() {
             requestAnimationFrame(animate);// like settimeout , Interval은 브라우저에 의해 정해짐
             let delta = clock.getDelta();
@@ -176,6 +197,28 @@
             stats.update();
         }
 
+        /**
+         * get extension
+         * @param filename
+         * @returns {any}
+         */
+        function getExtension(filename){
+            return (/[.]/.exec(filename)) ? /[^.]+$/.exec(filename) : undefined;
+        }
+
+        /**
+         * keypoints init FIXME
+         * @method keyPointInit
+         */
+        function keyPointInit(){
+            // Keypoints
+            let geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
+            let material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
+            let sphere = new THREE.Mesh( geometry, material );
+            sphere.name = "test1";
+            sphere.position.set(50,175,6);
+            scene.add( sphere );
+        }
 
     </script>
 </body>
