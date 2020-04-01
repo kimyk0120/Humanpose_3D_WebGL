@@ -32,7 +32,6 @@
         const webgl_info = document.getElementById("webgl_info");
         const webgl_output = document.getElementById("webgl_output");
 
-        // 화면을 표현하려면 기본적으로 scene, camera, renderer 3가지가 필요
         let camera, scene, renderer, light;
         const clock = new THREE.Clock;
         let perspective_max = 10000; // camera zoom max
@@ -40,19 +39,26 @@
         let camera_angle = 45;
         let mixer, controls, stats; // libs
         let container; // webgl contatiner
+        let model_opacity = 0.5;
         let mesh_data_path = "./data/fbx/BaseHuman.fbx"; // 3d model mesh data path
         let loader;// 3D model Loader var
         let file_ext = getExtension(mesh_data_path);
         if(file_ext[0] === 'fbx') loader = new THREE.FBXLoader();
         else if(file_ext[0] === 'obj') loader = new THREE.OBJLoader();
         else alert("지원하지 않는 3D 확장자입니다.");
+        let keypoint_geometry, keypoint_material, keypoint_sphere_mesh; // keypoints mesh
+        let model_object;
 
         // colors
-        let scene_background_color = '#A0A0A0';
+        let scene_background_color = '#A0A0A0'; // #000000; black, #A0A0A0; gray
         let scene_fog_color = "#A0A0A0";
         let directionalLight_color = "#FFFFFF";
         let keypoint_color = "#FFFF00"; // #FFFF00;yellow, #FF0000; red
 
+        // keypoints val init FIXME
+        let keypoints_positions = [[0,175,0],[0,150,0],[20,145,0],[50,145,0],[70,145,0],
+            [-20,145,0],[-50,145,0],[-70,145,0],[0,130,0],[0,95,0],[10,95,0],[-10,95,0],[-10,50,0],[10,50,0]
+        ,[-8,10,0],[8,10,0]];
 
         //브라우저가 WebGL을 지원하는지 체크
         let webglBrowserCheckc_yn = webglBrowserCheck();
@@ -63,7 +69,6 @@
             animate();
             keyPointInit();
         }
-
 
 
         // func =======================================================================================================
@@ -87,10 +92,6 @@
             light = new THREE.DirectionalLight( directionalLight_color ); // 방향형 라이트
             light.position.set( 0, 200, -100);
             light.castShadow = true;
-            light.shadow.camera.top = 180;
-            light.shadow.camera.bottom = - 100;
-            light.shadow.camera.left = - 120;
-            light.shadow.camera.right = 120;
             scene.add( light );
 
             // light = new THREE.HemisphereLight(0xffffff, 0x444444 ); // 반구체형 라이트
@@ -119,13 +120,28 @@
                 // mixer = new THREE.AnimationMixer( object );
                 // let action = mixer.clipAction( object.animations[ 0 ] );
                 // action.play();
+
+                // console.log(object);
                 object.traverse( function ( child ) {
                     if ( child.isMesh ) {
                         child.castShadow = true;
                         child.receiveShadow = true;
+                        if(child.type==="SkinnedMesh"){
+                            // console.log(child);
+                            for (let i = 0; i < child.material.length ; i++) {
+                                child.material[i].transparent = true;
+                                child.material[i].opacity = model_opacity;
+                            }
+                        }
                     }
                 } );
+
                 scene.add(object);
+
+                // skeleton helper
+                // let helper = new THREE.SkeletonHelper(object);
+                // scene.add(helper);
+
             }, function (xhr) {
                 // 모델이 로드되는 동안 호출되는 함수
                 let load_msg = Math.floor(xhr.loaded / xhr.total * 100) + '% loaded';
@@ -144,7 +160,7 @@
             renderer.setPixelRatio( window.devicePixelRatio );
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Percentage-Closer Filtering 알고리즘
             //document.body.appendChild(renderer.domElement);
             container.appendChild(renderer.domElement);
 
@@ -211,13 +227,33 @@
          * @method keyPointInit
          */
         function keyPointInit(){
-            // Keypoints
-            let geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
-            let material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
-            let sphere = new THREE.Mesh( geometry, material );
-            sphere.name = "test1";
-            sphere.position.set(50,175,6);
-            scene.add( sphere );
+            for (let i = 0; i < keypoints_positions.length ; i++) {
+                keypoint_geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
+                keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
+                keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
+                keypoint_sphere_mesh.name = "test"+i;
+                // console.log(keypoints_positions[0]);
+                keypoint_sphere_mesh.position.set(keypoints_positions[i][0],keypoints_positions[i][1],keypoints_positions[i][2]);
+                scene.add( keypoint_sphere_mesh );
+            }
+        }
+
+        /**
+         * move keypoint
+         * @param key_name
+         * @param x
+         * @param y
+         * @param z
+         */
+        function moveKeypoint(key_name, x, y, z){
+            //console.log(scene.children);
+            for (let i = 0; i < scene.children.length ; i++) {
+                if(scene.children[i].type === "Mesh" && scene.children[i].name === key_name){
+                    scene.children[i].translateX(x);
+                    scene.children[i].translateY(y);
+                    scene.children[i].translateZ(z);
+                }
+            }
         }
 
     </script>
