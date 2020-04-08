@@ -12,9 +12,10 @@
     <div id="webgl_description">Humanpose 3D WebGL View</div>
     <div id="webgl_info"></div>
     <div id="webgl_info2">
-        "W" translate | "E" rotate | "+" increase size | "-" decrease size<br />
+        "W" translate | "E" rotate <br />
+        "+" increase size | "-" decrease size<br />
         "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />
-        "Q" toggle world/local space
+<!--        "Q" toggle world/local space-->
     </div>
     <div id="webgl_output"></div>
 
@@ -58,6 +59,7 @@
         let keypoint_geometry, keypoint_material, keypoint_sphere_mesh, keypoint_box_mesh; // keypoints mesh
         let model_object;
         let keypoint_objects= [];
+        let selected_control_nm;
 
         // colors
         let scene_background_color = '#A0A0A0'; // #000000; black, #A0A0A0; gray
@@ -295,10 +297,10 @@
                 transform_controls.name = "test"+i;
                 transform_controls.attach(keypoint_sphere_mesh);
                 transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
-                // transform_controls.showX =! transform_controls.showX;
-                // transform_controls.showY =! transform_controls.showY;
-                // transform_controls.showZ =! transform_controls.showZ;
-                // transform_controls.enabled =! transform_controls.enabled;
+                transform_controls.showX =! transform_controls.showX;
+                transform_controls.showY =! transform_controls.showY;
+                transform_controls.showZ =! transform_controls.showZ;
+                transform_controls.enabled =! transform_controls.enabled;
 
                 // Transform controle add scene
                 scene.add(transform_controls);
@@ -329,9 +331,9 @@
                 if(scene.children[i].type === "Object3D"){
                     let transform_control = scene.children[i];
                     switch ( event.keyCode ) {
-                        case 81: // Q
-                            transform_control.setSpace( transform_control.space === "local" ? "world" : "local" );
-                            break;
+                        // case 81: // Q
+                        //     transform_control.setSpace( transform_control.space === "local" ? "world" : "local" );
+                        //     break;
 
                         case 87: // W
                             transform_control.setMode( "translate" );
@@ -352,14 +354,17 @@
                             break;
 
                         case 88: // X
+                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
                             transform_control.showX = ! transform_control.showX;
                             break;
 
                         case 89: // Y
+                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
                             transform_control.showY = ! transform_control.showY;
                             break;
 
                         case 90: // Z
+                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
                             transform_control.showZ = ! transform_control.showZ;
                             break;
 
@@ -380,13 +385,33 @@
             raycaster.setFromCamera( mouse3D, camera );
             let intersects = raycaster.intersectObjects(keypoint_objects);
             if ( intersects.length > 0 ) {
-                console.log(intersects);
                 let intersects_name = intersects[0].object.name;
+                webgl_info.innerText = intersects_name + ' selected';
                 console.log(intersects_name);
+                for (let i = 0; i < scene.children.length; i++) {
+                    if(scene.children[i].type === "Object3D"){
+                        let transformControl = scene.children[i];
+                        if(scene.children[i].name === intersects_name){
+                            transformControl.enabled = true;
+                            transformControl.showX = true;
+                            transformControl.showY = true;
+                            transformControl.showZ = true;
+                            selected_control_nm = intersects_name;
+                        }else{
+                            transformControl.enabled = false;
+                            transformControl.showX = false;
+                            transformControl.showY = false;
+                            transformControl.showZ = false;
+                        }
+                    }
+                }
             }
         }
 
 
+        function allKeypoint_controle_enabled_yn() {
+
+        }
 
     </script>
 </body>
