@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!--suppress ES6ModulesDependencies, JSUnresolvedVariable, SpellCheckingInspection, JSCheckFunctionSignatures, JSValidateJSDoc -->
+<!--suppress ES6ModulesDependencies, JSUnresolvedVariable, SpellCheckingInspection, JSCheckFunctionSignatures, JSValidateJSDoc, JSDeprecatedSymbols -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -11,9 +11,15 @@
 
     <div id="webgl_description">Humanpose 3D WebGL View</div>
     <div id="webgl_info"></div>
+    <div id="webgl_info2">
+        "W" translate | "E" rotate | "+" increase size | "-" decrease size<br />
+        "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />
+        "Q" toggle world/local space
+    </div>
     <div id="webgl_output"></div>
 
     <script src="./js/three.min.js"></script> <!-- three.js   -->
+    <script src="./js/three.module.js"></script> <!-- three.js   -->
     <script src="./js/WebGL.js"></script> <!-- browser support check-->
     <!-- OrbitControls.js allow the camera to orbit around a target 마우스와 카메라를 상호작용 -->
     <script src="./js/OrbitControls.js"></script>
@@ -21,9 +27,11 @@
     <script src="./js/OBJLoader.js"></script>
     <script src="./js/inflate.min.js"></script>
     <script src="./js/stats.min.js"></script>
+    <script src="./js/TransformControls.js"></script>
 
 
     <script>
+
 
         // init =======================================================================================================
 
@@ -37,17 +45,19 @@
         let perspective_max = 10000; // camera zoom max
         let perspective_min = 1; // camera zoom min
         let camera_angle = 45;
-        let mixer, controls, stats; // libs
+        let mixer, orbit_controls, transform_controls, stats; // libs
         let container; // webgl contatiner
         let model_opacity = 0.5;
         let mesh_data_path = "./data/fbx/BaseHuman.fbx"; // 3d model mesh data path
+        // mesh_data_path = "./data/fbx/SMPL_sample_animations/mosh_cmu_0511_f_lbs_10_207_0_v1.0.2.fbx";
         let loader;// 3D model Loader var
         let file_ext = getExtension(mesh_data_path);
         if(file_ext[0] === 'fbx') loader = new THREE.FBXLoader();
         else if(file_ext[0] === 'obj') loader = new THREE.OBJLoader();
         else alert("지원하지 않는 3D 확장자입니다.");
-        let keypoint_geometry, keypoint_material, keypoint_sphere_mesh; // keypoints mesh
+        let keypoint_geometry, keypoint_material, keypoint_sphere_mesh, keypoint_box_mesh; // keypoints mesh
         let model_object;
+        let keypoint_objects= [];
 
         // colors
         let scene_background_color = '#A0A0A0'; // #000000; black, #A0A0A0; gray
@@ -66,9 +76,12 @@
             webgl_info.innerText = "이 브라우저는 WEBGL을 지원하지 않습니다.";
         }else{
             initThree();
-            animate();
             keyPointInit();
+            animate();
+            document.addEventListener( 'mousedown', onDocumentMouseDown );
+            console.log(scene);
         }
+
 
 
         // func =======================================================================================================
@@ -85,8 +98,10 @@
             // Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(scene_background_color); // 0xa0a0a0
-            scene.fog = new THREE.Fog(scene_fog_color, 200, 1000 );
+            scene.fog = new THREE.Fog(scene_fog_color, 100, 1000 );
 
+            // grid helper
+            scene.add( new THREE.GridHelper( 1000, 10 ) );
 
             // light
             light = new THREE.DirectionalLight( directionalLight_color ); // 방향형 라이트
@@ -121,7 +136,7 @@
                 // let action = mixer.clipAction( object.animations[ 0 ] );
                 // action.play();
 
-                // console.log(object);
+                //console.log(object);
                 object.traverse( function ( child ) {
                     if ( child.isMesh ) {
                         child.castShadow = true;
@@ -136,11 +151,39 @@
                     }
                 } );
 
+
+                // make pose
+                model_object = object;
+                // console.log(model_object.children[1].skeleton.bones);
+                //let root = model_object.getObjectByName("root");
+                let upperarm_L = model_object.getObjectByName("upperarm_L");
+                let lowerarm_L = model_object.getObjectByName("lowerarm_L");
+                let upperarm_R = model_object.getObjectByName("upperarm_R");
+                let lowerarm_R = model_object.getObjectByName("lowerarm_R");
+
+                upperarm_L.rotation.x = (Math.PI * 22.87) / 180;
+                upperarm_L.rotation.y = (Math.PI * 4.61) / 180;
+                upperarm_L.rotation.z = (Math.PI * -53) / 180;
+
+                upperarm_R.rotation.x = (Math.PI * 22.87) / 180;
+                upperarm_R.rotation.y = (Math.PI * -4.61) / 180;
+                upperarm_R.rotation.z = (Math.PI * 53) / 180;
+
+                lowerarm_L.rotation.x = (Math.PI * 73.83) / 180;
+                lowerarm_L.rotation.y = (Math.PI * 2.641) / 180;
+                lowerarm_L.rotation.z = (Math.PI * -23.5) / 180;
+
+                lowerarm_R.rotation.x = (Math.PI * 73.83) / 180;
+                lowerarm_R.rotation.y = (Math.PI * 2.641) / 180;
+                lowerarm_R.rotation.z = (Math.PI * 23.5) / 180;
+                //.make pose
+
+                // add object
                 scene.add(object);
 
                 // skeleton helper
-                // let helper = new THREE.SkeletonHelper(object);
-                // scene.add(helper);
+                let helper = new THREE.SkeletonHelper(object);
+                scene.add(helper);
 
             }, function (xhr) {
                 // 모델이 로드되는 동안 호출되는 함수
@@ -169,27 +212,29 @@
              * AxisHelper(size : Number)
              * size: optional 축의 크기, 기본값은 1.
              */
-            let axes = new THREE.AxesHelper(10);
+            let axes = new THREE.AxesHelper(5);
             scene.add(axes);
 
 
             // Orbit Controls
-            controls = new THREE.OrbitControls( camera, renderer.domElement );
-            controls.target.set( 0, 100, 0 );
-            controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-            controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
-            controls.minDistance = 100;
-            controls.maxDistance = 500;
+            orbit_controls = new THREE.OrbitControls( camera, renderer.domElement );
+            orbit_controls.target.set( 0, 100, 0 );
+            orbit_controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            orbit_controls.dampingFactor = 0.05;
+            orbit_controls.screenSpacePanning = false;
+            orbit_controls.minDistance = 100;
+            orbit_controls.maxDistance = 500;
             // controls.maxPolarAngle = Math.PI / 2;
-            controls.update();
+            orbit_controls.update();
 
             window.addEventListener( 'resize', onWindowResize, false );
 
             // stats
             stats = new Stats();
             container.appendChild( stats.dom );
-        }
+
+
+        }//.init
 
         /**
          * window resize
@@ -224,19 +269,41 @@
 
         /**
          * keypoints init FIXME
-         * @method keyPointInit
+         * @method keyPointInit with Transform control
          */
         function keyPointInit(){
             for (let i = 0; i < keypoints_positions.length ; i++) {
+
+                // Transform controls init
+                transform_controls = new TransformControls( camera, renderer.domElement );
+                transform_controls.addEventListener( 'dragging-changed', function ( event ) {
+                    orbit_controls.enabled =! event.value;
+                } );
+
+                // kiypoint init
                 keypoint_geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
                 keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
                 keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
                 keypoint_sphere_mesh.name = "test"+i;
-                // console.log(keypoints_positions[0]);
+
+                // keypoint position settinf
                 keypoint_sphere_mesh.position.set(keypoints_positions[i][0],keypoints_positions[i][1],keypoints_positions[i][2]);
+                keypoint_objects.push(keypoint_sphere_mesh);
                 scene.add( keypoint_sphere_mesh );
-            }
-        }
+
+                // Transform controls properties
+                transform_controls.name = "test"+i;
+                transform_controls.attach(keypoint_sphere_mesh);
+                transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
+                // transform_controls.showX =! transform_controls.showX;
+                // transform_controls.showY =! transform_controls.showY;
+                // transform_controls.showZ =! transform_controls.showZ;
+                // transform_controls.enabled =! transform_controls.enabled;
+
+                // Transform controle add scene
+                scene.add(transform_controls);
+            }//.for
+        }//.keyPointInit
 
         /**
          * move keypoint
@@ -255,6 +322,71 @@
                 }
             }
         }
+
+        // Keydown Events
+        window.addEventListener( 'keydown', function ( event ) {
+            for (let i = 0; i < scene.children.length; i++) {
+                if(scene.children[i].type === "Object3D"){
+                    let transform_control = scene.children[i];
+                    switch ( event.keyCode ) {
+                        case 81: // Q
+                            transform_control.setSpace( transform_control.space === "local" ? "world" : "local" );
+                            break;
+
+                        case 87: // W
+                            transform_control.setMode( "translate" );
+                            break;
+
+                        case 69: // E
+                            transform_control.setMode( "rotate" );
+                            break;
+
+                        case 187:
+                        case 107: // +, =, num+
+                            transform_control.setSize( transform_control.size + 0.1 );
+                            break;
+
+                        case 189:
+                        case 109: // -, _, num-
+                            transform_control.setSize( Math.max( transform_control.size - 0.1, 0.1 ) );
+                            break;
+
+                        case 88: // X
+                            transform_control.showX = ! transform_control.showX;
+                            break;
+
+                        case 89: // Y
+                            transform_control.showY = ! transform_control.showY;
+                            break;
+
+                        case 90: // Z
+                            transform_control.showZ = ! transform_control.showZ;
+                            break;
+
+                        // case 32: // Spacebar
+                        //     transform_control.enabled = ! transform_control.enabled;
+                        //     break;
+                    }//,switch
+                }
+            }
+        } );
+
+
+        // Onmouse down event
+        function onDocumentMouseDown(event){
+            event.preventDefault();
+            let mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, -( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+            let raycaster =  new THREE.Raycaster();
+            raycaster.setFromCamera( mouse3D, camera );
+            let intersects = raycaster.intersectObjects(keypoint_objects);
+            if ( intersects.length > 0 ) {
+                console.log(intersects);
+                let intersects_name = intersects[0].object.name;
+                console.log(intersects_name);
+            }
+        }
+
+
 
     </script>
 </body>
