@@ -29,6 +29,7 @@
     <script src="./js/inflate.min.js"></script>
     <script src="./js/stats.min.js"></script>
     <script src="./js/TransformControls.js"></script>
+    <script src="./js/SkeletonUtils.js"></script>
 
 
     <script>
@@ -60,6 +61,7 @@
         let model_object;
         let keypoint_objects= [];
         let selected_control_nm;
+        let object_skeleton, skeleton_bones, skeleton_helper;
 
         // colors
         let scene_background_color = '#A0A0A0'; // #000000; black, #A0A0A0; gray
@@ -78,7 +80,6 @@
             webgl_info.innerText = "이 브라우저는 WEBGL을 지원하지 않습니다.";
         }else{
             initThree();
-            keyPointInit();
             animate();
             document.addEventListener( 'mousedown', onDocumentMouseDown );
             console.log(scene);
@@ -138,7 +139,7 @@
                 // let action = mixer.clipAction( object.animations[ 0 ] );
                 // action.play();
 
-                //console.log(object);
+                // console.log(object);
                 object.traverse( function ( child ) {
                     if ( child.isMesh ) {
                         child.castShadow = true;
@@ -184,8 +185,13 @@
                 scene.add(object);
 
                 // skeleton helper
-                let helper = new THREE.SkeletonHelper(object);
-                scene.add(helper);
+                skeleton_helper = new THREE.SkeletonHelper(object);
+                scene.add(skeleton_helper);
+
+                // get  skeleton bones
+                skeleton_bones = skeleton_helper.bones;
+
+                keyPointInit();
 
             }, function (xhr) {
                 // 모델이 로드되는 동안 호출되는 함수
@@ -274,37 +280,93 @@
          * @method keyPointInit with Transform control
          */
         function keyPointInit(){
-            for (let i = 0; i < keypoints_positions.length ; i++) {
+            console.log(skeleton_bones);
+            for (let i = 0; i < skeleton_bones.length ; i++) {
+                if(skeleton_bones[i].type ==="Bone" && (skeleton_bones[i].name === "hand_L" || skeleton_bones[i].name ==="lowerarm_L"
+                    || skeleton_bones[i].name === "upperarm_L" || skeleton_bones[i].name === "clavicle_L" || skeleton_bones[i].name === "pelvis"
+                    || skeleton_bones[i].name === "spine01" || skeleton_bones[i].name === "spine02" || skeleton_bones[i].name === "spine03"
+                    || skeleton_bones[i].name === "hand_R" || skeleton_bones[i].name ==="lowerarm_R"  || skeleton_bones[i].name === "upperarm_R" || skeleton_bones[i].name === "clavicle_R"
+                    || skeleton_bones[i].name === "thigh_L" || skeleton_bones[i].name ==="calf_L"  || skeleton_bones[i].name === "foot_L" || skeleton_bones[i].name === "toes_L"
+                    || skeleton_bones[i].name === "thigh_R" || skeleton_bones[i].name ==="calf_R"  || skeleton_bones[i].name === "foot_R" || skeleton_bones[i].name === "toes_R"
+                    || skeleton_bones[i].name === "neck" || skeleton_bones[i].name ==="head"
+                )){
+                // if(skeleton_bones[i].type ==="Bone" && skeleton_bones[i].name === "hand_L" ){
+                //     console.log(skeleton_bones[i].name);
+                //     console.log(skeleton_bones[i].position);
+                //     console.log(skeleton_bones[i].getWorldPosition());
 
-                // Transform controls init
-                transform_controls = new TransformControls( camera, renderer.domElement );
-                transform_controls.addEventListener( 'dragging-changed', function ( event ) {
-                    orbit_controls.enabled =! event.value;
-                } );
+                    // Transform controls init
+                    transform_controls = new TransformControls( camera, renderer.domElement );
+                    transform_controls.addEventListener( 'dragging-changed', function ( event ) {
+                        orbit_controls.enabled =! event.value;
+                    } );
+                    transform_controls.addEventListener( 'objectChange', function ( event ) {
+                        moveKeypoint(event.target);
+                    } );
 
-                // kiypoint init
-                keypoint_geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
-                keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
-                keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
-                keypoint_sphere_mesh.name = "test"+i;
+                    // kiypoint init
+                    keypoint_geometry = new THREE.SphereGeometry( 2.5, 16, 16 ); // radius , w_segments, h_w_segments
+                    keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
+                    keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
+                    keypoint_sphere_mesh.name = skeleton_bones[i].name;
 
-                // keypoint position settinf
-                keypoint_sphere_mesh.position.set(keypoints_positions[i][0],keypoints_positions[i][1],keypoints_positions[i][2]);
-                keypoint_objects.push(keypoint_sphere_mesh);
-                scene.add( keypoint_sphere_mesh );
+                    // keypoint position set
+                    // keypoint_sphere_mesh.matrixWorld.setPosition(skeleton_bones[i].getWorldPosition().x,skeleton_bones[i].getWorldPosition().y,skeleton_bones[i].getWorldPosition().z);
+                    // keypoint_sphere_mesh.matrixWorld.setPosition(skeleton_bones[i].position.x,skeleton_bones[i].position.y,skeleton_bones[i].position.z);
+                    keypoint_sphere_mesh.position.set(skeleton_bones[i].getWorldPosition().x,skeleton_bones[i].getWorldPosition().y,skeleton_bones[i].getWorldPosition().z);
+                    // keypoint_sphere_mesh.position.x = skeleton_bones[i].getWorldPosition().x;
+                    // keypoint_sphere_mesh.position.y = skeleton_bones[i].getWorldPosition().y;
+                    // keypoint_sphere_mesh.position.z = skeleton_bones[i].getWorldPosition().z;
 
-                // Transform controls properties
-                transform_controls.name = "test"+i;
-                transform_controls.attach(keypoint_sphere_mesh);
-                transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
-                transform_controls.showX =! transform_controls.showX;
-                transform_controls.showY =! transform_controls.showY;
-                transform_controls.showZ =! transform_controls.showZ;
-                transform_controls.enabled =! transform_controls.enabled;
+                    keypoint_objects.push(keypoint_sphere_mesh);
+                    scene.add( keypoint_sphere_mesh );
 
-                // Transform controle add scene
-                scene.add(transform_controls);
+                    // // Transform controls properties
+                    transform_controls.name = skeleton_bones[i].name;
+                    transform_controls.attach(keypoint_sphere_mesh);
+                    transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
+                    transform_controls.showX =! transform_controls.showX;
+                    transform_controls.showY =! transform_controls.showY;
+                    transform_controls.showZ =! transform_controls.showZ;
+                    transform_controls.enabled =! transform_controls.enabled;
+
+                    // Transform controle add scene
+                    scene.add(transform_controls);
+                }//.if
             }//.for
+
+
+            // for (let i = 0; i < keypoints_positions.length ; i++) {
+            //
+            //     // Transform controls init
+            //     transform_controls = new TransformControls( camera, renderer.domElement );
+            //     transform_controls.addEventListener( 'dragging-changed', function ( event ) {
+            //         orbit_controls.enabled =! event.value;
+            //     } );
+            //
+            //     // kiypoint init
+            //     keypoint_geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
+            //     keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
+            //     keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
+            //     keypoint_sphere_mesh.name = "test"+i;
+            //
+            //     // keypoint position settinf
+            //     keypoint_sphere_mesh.position.set(keypoints_positions[i][0],keypoints_positions[i][1],keypoints_positions[i][2]);
+            //     keypoint_objects.push(keypoint_sphere_mesh);
+            //     scene.add( keypoint_sphere_mesh );
+            //
+            //     // Transform controls properties
+            //     transform_controls.name = "test"+i;
+            //     transform_controls.attach(keypoint_sphere_mesh);
+            //     transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
+            //     transform_controls.showX =! transform_controls.showX;
+            //     transform_controls.showY =! transform_controls.showY;
+            //     transform_controls.showZ =! transform_controls.showZ;
+            //     transform_controls.enabled =! transform_controls.enabled;
+            //
+            //     // Transform controle add scene
+            //     scene.add(transform_controls);
+            // }//.for
         }//.keyPointInit
 
         /**
@@ -314,15 +376,17 @@
          * @param y
          * @param z
          */
-        function moveKeypoint(key_name, x, y, z){
-            //console.log(scene.children);
-            for (let i = 0; i < scene.children.length ; i++) {
-                if(scene.children[i].type === "Mesh" && scene.children[i].name === key_name){
-                    scene.children[i].translateX(x);
-                    scene.children[i].translateY(y);
-                    scene.children[i].translateZ(z);
-                }
-            }
+        function moveKeypoint(target){
+            console.log(scene.children);
+            console.log(target);
+            console.log(target.object);
+            // for (let i = 0; i < scene.children.length ; i++) {
+            //     if(scene.children[i].type === "Mesh" && scene.children[i].name === key_name){
+            //         scene.children[i].translateX(x);
+            //         scene.children[i].translateY(y);
+            //         scene.children[i].translateZ(z);
+            //     }
+            // }
         }
 
         // Keydown Events
@@ -377,7 +441,7 @@
         } );
 
 
-        // Onmouse down event
+        // Onmouse down event (Transformer)
         function onDocumentMouseDown(event){
             event.preventDefault();
             let mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, -( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
@@ -387,7 +451,6 @@
             if ( intersects.length > 0 ) {
                 let intersects_name = intersects[0].object.name;
                 webgl_info.innerText = intersects_name + ' selected';
-                console.log(intersects_name);
                 for (let i = 0; i < scene.children.length; i++) {
                     if(scene.children[i].type === "Object3D"){
                         let transformControl = scene.children[i];
@@ -408,10 +471,6 @@
             }
         }
 
-
-        function allKeypoint_controle_enabled_yn() {
-
-        }
 
     </script>
 </body>
