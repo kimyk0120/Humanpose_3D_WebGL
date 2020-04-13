@@ -15,7 +15,7 @@
         "W" translate | "E" rotate <br />
         "+" increase size | "-" decrease size<br />
         "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />
-<!--        "Q" toggle world/local space-->
+        "Q" toggle world/local space
     </div>
     <div id="webgl_output"></div>
 
@@ -280,7 +280,8 @@
          * @method keyPointInit with Transform control
          */
         function keyPointInit(){
-            console.log(skeleton_bones);
+            // console.log(skeleton_bones);
+
             for (let i = 0; i < skeleton_bones.length ; i++) {
                 if(skeleton_bones[i].type ==="Bone" && (skeleton_bones[i].name === "hand_L" || skeleton_bones[i].name ==="lowerarm_L"
                     || skeleton_bones[i].name === "upperarm_L" || skeleton_bones[i].name === "clavicle_L" || skeleton_bones[i].name === "pelvis"
@@ -320,10 +321,11 @@
 
                     keypoint_objects.push(keypoint_sphere_mesh);
                     scene.add( keypoint_sphere_mesh );
+                    skeleton_bones[i].attach(keypoint_sphere_mesh);
 
                     // // Transform controls properties
                     transform_controls.name = skeleton_bones[i].name;
-                    transform_controls.attach(keypoint_sphere_mesh);
+                    transform_controls.attach(skeleton_bones[i]);
                     transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
                     transform_controls.showX =! transform_controls.showX;
                     transform_controls.showY =! transform_controls.showY;
@@ -335,38 +337,6 @@
                 }//.if
             }//.for
 
-
-            // for (let i = 0; i < keypoints_positions.length ; i++) {
-            //
-            //     // Transform controls init
-            //     transform_controls = new TransformControls( camera, renderer.domElement );
-            //     transform_controls.addEventListener( 'dragging-changed', function ( event ) {
-            //         orbit_controls.enabled =! event.value;
-            //     } );
-            //
-            //     // kiypoint init
-            //     keypoint_geometry = new THREE.SphereGeometry( 3, 16, 16 ); // radius , w_segments, h_w_segments
-            //     keypoint_material = new THREE.MeshLambertMaterial( {color: keypoint_color} );
-            //     keypoint_sphere_mesh = new THREE.Mesh( keypoint_geometry, keypoint_material );
-            //     keypoint_sphere_mesh.name = "test"+i;
-            //
-            //     // keypoint position settinf
-            //     keypoint_sphere_mesh.position.set(keypoints_positions[i][0],keypoints_positions[i][1],keypoints_positions[i][2]);
-            //     keypoint_objects.push(keypoint_sphere_mesh);
-            //     scene.add( keypoint_sphere_mesh );
-            //
-            //     // Transform controls properties
-            //     transform_controls.name = "test"+i;
-            //     transform_controls.attach(keypoint_sphere_mesh);
-            //     transform_controls.setSize( Math.max( transform_controls.size - 0.6, 0.1 ) );
-            //     transform_controls.showX =! transform_controls.showX;
-            //     transform_controls.showY =! transform_controls.showY;
-            //     transform_controls.showZ =! transform_controls.showZ;
-            //     transform_controls.enabled =! transform_controls.enabled;
-            //
-            //     // Transform controle add scene
-            //     scene.add(transform_controls);
-            // }//.for
         }//.keyPointInit
 
         /**
@@ -395,9 +365,9 @@
                 if(scene.children[i].type === "Object3D"){
                     let transform_control = scene.children[i];
                     switch ( event.keyCode ) {
-                        // case 81: // Q
-                        //     transform_control.setSpace( transform_control.space === "local" ? "world" : "local" );
-                        //     break;
+                        case 81: // Q
+                            transform_control.setSpace( transform_control.space === "world" ? "local" : "world" );
+                            break;
 
                         case 87: // W
                             transform_control.setMode( "translate" );
