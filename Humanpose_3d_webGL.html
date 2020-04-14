@@ -14,16 +14,17 @@
     <div id="webgl_info2">
         "W" translate | "E" rotate <br />
         "+" increase size | "-" decrease size<br />
-        "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />
+<!--        "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />-->
         "Q" toggle world/local space
     </div>
-    <div id="webgl_output"></div>
+    <button id="test_btn" onclick="background_image_change('test_backround2.jpg')"></button>
+    <canvas id="webgl_output">test</canvas>
+
 
     <script src="./js/three.min.js"></script> <!-- three.js   -->
     <script src="./js/three.module.js"></script> <!-- three.js   -->
     <script src="./js/WebGL.js"></script> <!-- browser support check-->
-    <!-- OrbitControls.js allow the camera to orbit around a target 마우스와 카메라를 상호작용 -->
-    <script src="./js/OrbitControls.js"></script>
+    <script src="./js/OrbitControls.js"></script> <!-- OrbitControls.js allow the camera to orbit around a target 마우스와 카메라를 상호작용 -->
     <script src="./js/FBXLoader.js"></script>
     <script src="./js/OBJLoader.js"></script>
     <script src="./js/inflate.min.js"></script>
@@ -40,7 +41,7 @@
         // Elements
         const webgl_description = document.getElementById("webgl_description");
         const webgl_info = document.getElementById("webgl_info");
-        const webgl_output = document.getElementById("webgl_output");
+        const canvas = document.getElementById("webgl_output");
 
         let camera, scene, renderer, light;
         const clock = new THREE.Clock;
@@ -100,11 +101,11 @@
 
             // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(scene_background_color); // 0xa0a0a0
-            scene.fog = new THREE.Fog(scene_fog_color, 100, 1000 );
+            // scene.background = new THREE.Color(scene_background_color); // 0xa0a0a0
+            // scene.fog = new THREE.Fog(scene_fog_color, 100, 1000 );
 
             // grid helper
-            scene.add( new THREE.GridHelper( 1000, 10 ) );
+            // scene.add( new THREE.GridHelper( 1000, 10 ) );
 
             // light
             light = new THREE.DirectionalLight( directionalLight_color ); // 방향형 라이트
@@ -206,14 +207,14 @@
 
             // renderer
             renderer = new THREE.WebGLRenderer({
-                antialias: true, alpha: true
+                canvas, antialias: true, alpha: true
             });
             renderer.setPixelRatio( window.devicePixelRatio );
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Percentage-Closer Filtering 알고리즘
-            //document.body.appendChild(renderer.domElement);
-            container.appendChild(renderer.domElement);
+
+            // container.appendChild(renderer.domElement);
 
             /**
              * scene 화면상에 XYZ(Red: X, Green: Y, Blue: Z) 축
@@ -302,7 +303,7 @@
                         orbit_controls.enabled =! event.value;
                     } );
                     transform_controls.addEventListener( 'objectChange', function ( event ) {
-                        moveKeypoint(event.target);
+                        // moveKeypoint(event.target);
                     } );
 
                     // kiypoint init
@@ -341,15 +342,12 @@
 
         /**
          * move keypoint
-         * @param key_name
-         * @param x
-         * @param y
-         * @param z
          */
         function moveKeypoint(target){
-            console.log(scene.children);
-            console.log(target);
-            console.log(target.object);
+            // console.log("moveKeypoint");
+            // console.log(scene.children);
+            // console.log(target);
+            // console.log(target.object);
             // for (let i = 0; i < scene.children.length ; i++) {
             //     if(scene.children[i].type === "Mesh" && scene.children[i].name === key_name){
             //         scene.children[i].translateX(x);
@@ -369,9 +367,9 @@
                             transform_control.setSpace( transform_control.space === "world" ? "local" : "world" );
                             break;
 
-                        case 87: // W
-                            transform_control.setMode( "translate" );
-                            break;
+                        // case 87: // W
+                        //     transform_control.setMode( "translate" );
+                        //     break;
 
                         case 69: // E
                             transform_control.setMode( "rotate" );
@@ -387,20 +385,20 @@
                             transform_control.setSize( Math.max( transform_control.size - 0.1, 0.1 ) );
                             break;
 
-                        case 88: // X
-                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
-                            transform_control.showX = ! transform_control.showX;
-                            break;
-
-                        case 89: // Y
-                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
-                            transform_control.showY = ! transform_control.showY;
-                            break;
-
-                        case 90: // Z
-                            if(selected_control_nm==null || transform_control.name === selected_control_nm)
-                            transform_control.showZ = ! transform_control.showZ;
-                            break;
+                        // case 88: // X
+                        //     if(selected_control_nm==null || transform_control.name === selected_control_nm)
+                        //     transform_control.showX = ! transform_control.showX;
+                        //     break;
+                        //
+                        // case 89: // Y
+                        //     if(selected_control_nm==null || transform_control.name === selected_control_nm)
+                        //     transform_control.showY = ! transform_control.showY;
+                        //     break;
+                        //
+                        // case 90: // Z
+                        //     if(selected_control_nm==null || transform_control.name === selected_control_nm)
+                        //     transform_control.showZ = ! transform_control.showZ;
+                        //     break;
 
                         // case 32: // Spacebar
                         //     transform_control.enabled = ! transform_control.enabled;
@@ -425,6 +423,7 @@
                     if(scene.children[i].type === "Object3D"){
                         let transformControl = scene.children[i];
                         if(scene.children[i].name === intersects_name){
+                            transformControl.setMode("rotate");
                             transformControl.enabled = true;
                             transformControl.showX = true;
                             transformControl.showY = true;
@@ -441,6 +440,13 @@
             }
         }
 
+        /**
+         * Back ground Image Change
+         */
+        function background_image_change(image_path){
+            console.log(image_path);
+            canvas.style.backgroundImage = "url('"+image_path+"')";
+        }
 
     </script>
 </body>

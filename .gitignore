@@ -161,3 +161,4 @@ local.properties
 # add
 .idea/
 Humanpose_3d_WebGL.iml
+data/test_image
