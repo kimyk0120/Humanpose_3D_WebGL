@@ -17,7 +17,7 @@
 <!--        "X" toggle X | "Y" toggle Y | "Z" toggle Z<br />-->
         "Q" toggle world/local space
     </div>
-    <button id="test_btn" onclick="background_image_change('test_backround2.jpg')"></button>
+    <button id="test_btn" onclick="background_image_change('test_background')"></button>
     <canvas id="webgl_output">test</canvas>
 
 
@@ -130,7 +130,9 @@
             // camera.position.z = 300;
             // camera.lookAt(axes.position);
             // scene.add(camera);
-            camera.position.set(100 , 200 , 300);
+            camera.position.set(-18.278734172641848 , 178.69291630699752 , 383.9705229363502);
+            // camera.position.set( 100 , 200, 300);
+            camera.rotation.set( 10000 ,90 , 90);
             camera.lookAt(scene.position);
 
             // obj loader
@@ -227,15 +229,25 @@
 
             // Orbit Controls
             orbit_controls = new THREE.OrbitControls( camera, renderer.domElement );
-            orbit_controls.target.set( 0, 100, 0 );
+            orbit_controls.target.set( -12.55297606963465, 100, 51.67879090031322 );
             orbit_controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
             orbit_controls.dampingFactor = 0.05;
             orbit_controls.screenSpacePanning = false;
             orbit_controls.minDistance = 100;
             orbit_controls.maxDistance = 500;
             // controls.maxPolarAngle = Math.PI / 2;
+            orbit_controls.zoomSpeed = 0.1;
             orbit_controls.update();
+            orbit_controls.addEventListener( 'change', function ( event ) {
+                // console.log(event.target.object.position);
+                console.log(event.target.object.rotation);
+                // console.log(event.target.target);
+            });
+            orbit_controls.enableZoom = false;
 
+
+
+            // window resize update
             window.addEventListener( 'resize', onWindowResize, false );
 
             // stats
@@ -303,7 +315,7 @@
                         orbit_controls.enabled =! event.value;
                     } );
                     transform_controls.addEventListener( 'objectChange', function ( event ) {
-                        // moveKeypoint(event.target);
+                        objectChange(event.target);
                     } );
 
                     // kiypoint init
@@ -341,13 +353,16 @@
         }//.keyPointInit
 
         /**
-         * move keypoint
+         * Object stat Change
          */
-        function moveKeypoint(target){
-            // console.log("moveKeypoint");
+        function objectChange(target){
+            // console.log("objectChange");
             // console.log(scene.children);
-            // console.log(target);
-            // console.log(target.object);
+            // console.log(target.object.rotation);
+            // console.log(target.object.children[0].position)
+            console.log(target.object.children[0].getWorldPosition());
+            // console.log(target.object.children[0]);
+            // console.log(target.object.children[0].position);
             // for (let i = 0; i < scene.children.length ; i++) {
             //     if(scene.children[i].type === "Mesh" && scene.children[i].name === key_name){
             //         scene.children[i].translateX(x);
@@ -443,9 +458,10 @@
         /**
          * Back ground Image Change
          */
+
         function background_image_change(image_path){
             console.log(image_path);
-            canvas.style.backgroundImage = "url('"+image_path+"')";
+            canvas.style.backgroundImage = "url('./data/test_image/"+image_path+"6"+".jpg')";
         }
 
     </script>

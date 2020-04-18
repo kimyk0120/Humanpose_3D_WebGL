@@ -32,7 +32,7 @@ body{
     width: 100vw;
     height: 100vh;
     display: block;
-    background: url(../data/test_image/test_backgound.jpg) no-repeat center center ;
+    background: url(../data/test_image/test_background1.jpg) no-repeat center center ;
     background-size: cover;
 }
 
